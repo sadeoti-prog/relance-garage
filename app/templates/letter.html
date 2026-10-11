@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ letter.number }} — {{ letter.customer }}</title>
+<style>
+  :root{ --ink:#111318; --muted:#5a616b; --line:#d9dce1 }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:#eceef1; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  .toolbar{
+    position:sticky; top:0; background:#fff; border-bottom:1px solid var(--line);
+    padding:12px 20px; display:flex; gap:10px; align-items:center; font-size:14px;
+  }
+  .toolbar .meta{color:var(--muted); margin-right:auto}
+  button, a.btn{
+    font:inherit; font-size:13.5px; padding:7px 14px; border-radius:7px; cursor:pointer;
+    border:1px solid var(--line); background:#fff; color:var(--ink); text-decoration:none;
+  }
+  button.primary{background:#1f3a5f; border-color:#1f3a5f; color:#fff}
+
+  /* A4 sheet */
+  .sheet{
+    width:210mm; min-height:297mm; margin:24px auto; background:#fff;
+    padding:25mm 22mm; box-shadow:0 2px 16px rgba(0,0,0,.12);
+    font-size:11.5pt; line-height:1.55;
+  }
+  .letter{white-space:pre-wrap; font-family:Georgia,"Times New Roman",serif}
+  .subject{font-weight:700; margin-bottom:18px; font-family:Georgia,"Times New Roman",serif}
+  .foot{margin-top:28px; padding-top:12px; border-top:1px solid var(--line);
+        font-size:8.5pt; color:var(--muted); line-height:1.45}
+  .demo-mark{border:2px solid #8c3232;color:#8c3232;padding:9px 12px;margin-bottom:20px;text-align:center;font-weight:700;letter-spacing:.04em}
+  @media screen and (max-width:800px){.toolbar{position:static;flex-wrap:wrap}.toolbar .meta{width:100%}.sheet{width:auto;min-height:0;margin:12px;padding:28px 22px}.toolbar a,.toolbar button{flex:1}}
+
+  @media print{
+    body{background:#fff}
+    .toolbar{display:none}
+    .sheet{width:auto; min-height:0; margin:0; padding:0; box-shadow:none}
+    @page{size:A4; margin:20mm}
+  }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <span class="meta">
+      {{ letter.number }} · {{ letter.customer }} · {{ letter.level_name }} · {{ letter.channel }}
+    </span>
+    <a class="btn" href="/">Retour au tableau de bord</a>
+    <button class="primary" onclick="window.print()">Imprimer</button>
+  </div>
+
+  <div class="sheet">
+    {% if data_context.is_demo %}<div class="demo-mark">DÉMONSTRATION — DOCUMENT FICTIF — NE PAS ENVOYER</div>{% endif %}
+    <div class="subject">{{ letter.subject }}</div>
+    <div class="letter">{{ letter.body }}</div>
+    <div class="foot">
+      {{ letter.garage_name }} — {{ letter.garage_address }} · SIRET {{ letter.garage_siret }}
+      · TVA {{ letter.garage_vat }} · {{ letter.garage_rcs }}<br>
+      Document préparé le {{ letter.printed_on }}. À expédier en lettre recommandée
+      avec accusé de réception.
+    </div>
+  </div>
+</body>
+</html>

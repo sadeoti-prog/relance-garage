@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if result %}Résultat de l’import{% else %}Récapitulatif avant import{% endif %} — Relance Garage</title>
+{% include "_style.html" %}
+<style>
+  /* The verdict is the page. Everything else waits behind a fold: an owner
+     who has to choose what to read on a confirmation screen reads nothing,
+     and then every reassurance on it is worth exactly zero. */
+  .verdict{margin:26px 0 0; font-size:19px; line-height:1.65; letter-spacing:-.005em}
+  .verdict p{margin:0 0 6px}
+  .verdict b{font-weight:600; font-variant-numeric:tabular-nums}
+  .verdict p.stop b{color:var(--stop)}
+  .act{margin:16px 0 0; font-size:14px; line-height:1.55; color:var(--warn-ink, var(--muted));
+       padding-left:13px; border-left:2px solid var(--warn)}
+  .act + .act{margin-top:8px}
+  .btn-quiet{background:none; border:0; padding:0; font:inherit; font-size:13.5px;
+             color:var(--muted); text-decoration:underline; cursor:pointer}
+  .btn-quiet:hover{color:var(--ink)}
+  .fold{margin-top:28px; border-top:1px solid var(--line); padding-top:14px}
+  .fold > summary{cursor:pointer; font-size:14px; color:var(--muted); list-style:none}
+  .fold > summary::-webkit-details-marker{display:none}
+  .fold > summary::before{content:"▸ "; font-size:11px}
+  .fold[open] > summary::before{content:"▾ "}
+  .fold > summary:hover{color:var(--ink)}
+  .fold-body{padding-top:6px}
+  .fold-body > section:first-child, .fold-body > .note:first-child{margin-top:18px}
+  .reject-row{padding:12px 16px; border-bottom:1px solid var(--line-soft); font-size:14px}
+  .reject-row:last-child{border-bottom:0}
+  .reject-row .where{color:var(--muted); font-size:13px}
+  .prev-warn{font-size:12.5px; color:var(--warn); margin-top:4px}
+  td.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .inferred{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  {% include "_app_header.html" %}
+  <main>
+
+  {% if result %}
+  <div class="note {% if result.inserted or result.updated or result.unchanged %}ok{% else %}stop{% endif %}">
+    <b>{% if result.inserted or result.updated or result.unchanged %}Import vérifié.{% else %}Aucune facture n’a pu être acceptée.{% endif %}</b>
+    {#- Recognition first, and never a bare "0 mise(s) à jour": an import that
+        changes nothing is the normal weekly outcome, not a failure. #}
+    {% if result.unchanged %}{{ result.unchanged }} facture{{ 's' if result.unchanged > 1 }} déjà connue{{ 's' if result.unchanged > 1 }}, aucune modification.{% endif %}
+    {% if result.inserted %}{{ result.inserted }} facture{{ 's' if result.inserted > 1 }} ajoutée{{ 's' if result.inserted > 1 }}.{% endif %}
+    {% if result.updated %}{{ result.updated }} facture{{ 's' if result.updated > 1 }} mise{{ 's' if result.updated > 1 }} à jour.{% endif %}
+    {% if result.customers_created %}{{ result.customers_created }} client{{ 's' if result.customers_created > 1 }} créé{{ 's' if result.customers_created > 1 }}.{% endif %}
+    {% if result.customers_completed %}{{ result.customers_completed }} fiche{{ 's' if result.customers_completed > 1 }} complétée{{ 's' if result.customers_completed > 1 }}.{% endif %}
+    {% if not (result.inserted or result.updated or result.unchanged) %}Aucune facture ajoutée.{% endif %}
+    {% if result.rejected %}{{ result.rejected }} ligne{{ 's' if result.rejected > 1 }} {{ 'n’ont' if result.rejected > 1 else 'n’a' }} pas été importée{{ 's' if result.rejected > 1 }}.{% endif %}
+    {% if result.skipped_flagged %}{{ result.skipped_flagged }} facture{{ 's' if result.skipped_flagged > 1 }} signalée{{ 's' if result.skipped_flagged > 1 }} {{ 'n’ont' if result.skipped_flagged > 1 else 'n’a' }} pas été modifiée{{ 's' if result.skipped_flagged > 1 }}.{% endif %}
+    {% if result.followups_closed %}{{ result.followups_closed }} ancienne{{ 's' if result.followups_closed > 1 }} relance{{ 's' if result.followups_closed > 1 }} {{ 'ont' if result.followups_closed > 1 else 'a' }} été fermée{{ 's' if result.followups_closed > 1 }} avant recalcul.{% endif %}
+    {% if result.inserted or result.updated or result.followups_closed %}Les données réelles ont été mises à jour.{% else %}Aucune écriture n’était nécessaire : les factures reconnues sont restées inchangées.{% endif %}
+    {% if result.drafts_created %} {{ result.drafts_created }} relance{{ 's' if result.drafts_created > 1 }} prête{{ 's' if result.drafts_created > 1 }} à vérifier.{% endif %}
+  </div>
+  {% if result.drafts_blocked %}<div class="note warn"><b>{{ result.drafts_blocked }} relance(s) bloquée(s) par le contrôle de sécurité.</b> Les factures sont bien importées, mais ces messages ne sont pas proposés à l’envoi. Ouvrez Relances pour voir pourquoi.</div>{% endif %}
+  {% if result.draft_warning %}<div class="note warn">{{ result.draft_warning }}</div>{% endif %}
+  {% if plan.rejects or plan.flagged %}<div class="note warn"><b>Éléments non importés.</b> {{ plan.rejects|length }} ligne(s) invalide(s) et {{ plan.flagged|length }} facture(s) signalée(s) sont restées inchangées.<details class="disclosure"><summary>Voir pourquoi</summary>{% for row in plan.rejects %}<p class="small">Ligne {{ row.line }}{% if row.number %} · {{ row.number }}{% endif %} — {{ row.reasons|join(' ') }}</p>{% endfor %}{% for row in plan.flagged %}<p class="small">{{ row.number }} — {{ row.reasons|join(' ') }}</p>{% endfor %}</details></div>{% endif %}
+  <div class="actions" style="margin-bottom:32px">
+    <a class="btn primary" href="/factures">Voir les factures importées</a>
+    <a class="btn" href="/relances">Voir les relances</a>
+    <a class="btn" href="/import">Importer un autre fichier</a>
+  </div>
+  {% else %}
+
+  <h1>Voici ce qui va se passer</h1>
+  <p class="lede">
+    Rien n’est encore enregistré. Lisez ces lignes, puis confirmez.
+  </p>
+
+  {#- The whole decision, in sentences, at this level and nothing else. -#}
+  <div class="verdict">
+    {#- Recognition is a result. Without this line, "seen, nothing changed"
+        and "not seen at all" read exactly the same. -#}
+    {% set n = plan.unchanged|length %}
+    {% if n %}
+    <p><b>{{ n }}</b> facture{{ 's' if n > 1 }} déjà connue{{ 's' if n > 1 }},
+       inchangée{{ 's' if n > 1 }}.</p>
+    {% endif %}
+
+    {% set n = plan.inserts|length %}
+    {% if n %}
+    <p><b>{{ n }}</b> facture{{ 's' if n > 1 }} {{ 'vont' if n > 1 else 'va' }} être
+       ajoutée{{ 's' if n > 1 }}.</p>
+    {% else %}
+    <p>Aucune facture ne sera ajoutée.</p>
+    {% endif %}
+
+    {% set n = plan.updates|length %}
+    {% if n %}
+    <p><b>{{ n }}</b> facture{{ 's' if n > 1 }} déjà connue{{ 's' if n > 1 }}
+       {{ 'vont' if n > 1 else 'va' }} être mise{{ 's' if n > 1 }} à
+       jour{% if plan.settled_count %}, dont {{ plan.settled_count }} désormais
+       réglée{{ 's' if plan.settled_count > 1 }}{% endif %}.</p>
+    {% endif %}
+
+    {% set n = plan.rejects|length %}
+    {% if n %}
+    <p class="stop"><b>{{ n }}</b> ligne{{ 's' if n > 1 }} {{ 'ont' if n > 1 else 'a' }}
+       un problème et ne ser{{ 'ont' if n > 1 else 'a' }} pas
+       importée{{ 's' if n > 1 }}.</p>
+    {% endif %}
+
+    {% set n = plan.flagged|length %}
+    {% if n %}
+    <p class="stop"><b>{{ n }}</b> facture{{ 's' if n > 1 }} signalée{{ 's' if n > 1 }}
+       ne ser{{ 'ont' if n > 1 else 'a' }} pas modifiée{{ 's' if n > 1 }}.</p>
+    {% endif %}
+
+    {% set n = plan.closed_followups|length %}
+    {% if n %}
+    <p><b>{{ n }}</b> ancienne{{ 's' if n > 1 }} relance{{ 's' if n > 1 }}
+       ser{{ 'ont' if n > 1 else 'a' }} fermée{{ 's' if n > 1 }} avant
+       recalcul.</p>
+    {% endif %}
+
+    {% set n = plan.inferred_due_dates %}
+    {% if n %}
+    <p><b>{{ n }}</b> échéance{{ 's' if n > 1 }} {{ 'ont' if n > 1 else 'a' }} été
+       calculée{{ 's' if n > 1 }} (absente{{ 's' if n > 1 }} du fichier).</p>
+    {% endif %}
+  </div>
+
+  {#- The two facts that change what he should DO, not just what he knows.
+      Everything else can wait behind the fold; these cannot. -#}
+  {% if plan.inferred_due_dates %}
+  <p class="act">Le délai appliqué est de {{ terms_days }} jours : si ce n’est pas
+    le vôtre, ces relances partiront trop tôt ou trop tard.</p>
+  {% endif %}
+  {% if plan.customers_without_email %}
+  <p class="act">Sans adresse e-mail — {{ plan.customers_without_email|join(', ') }} :
+    {{ 'leurs relances ne pourront partir' if plan.customers_without_email|length > 1
+       else 'sa relance ne pourra partir' }} que par courrier.</p>
+  {% endif %}
+
+  <div class="actions">
+    {% if plan.inserts or plan.updates or plan.unchanged or plan.closed_followups %}
+    <form method="post" action="/import/{{ token }}/confirmer">
+      <button class="primary" type="submit" onclick="this.disabled=true;this.textContent='Import en cours…';this.form.submit()">Confirmer l’import</button>
+    </form>
+    {% else %}<span class="pill stop">Corrigez le fichier avant de recommencer</span>{% endif %}
+    <button class="btn-quiet" type="button"
+            onclick="var d=document.getElementById('detail'); d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'})">Voir le détail</button>
+    <a class="btn-quiet" href="/import/{{ token }}">Revenir à la correspondance</a>
+    <form method="post" action="/import/{{ token }}/fermer">
+      <button class="btn-quiet" type="submit">Annuler</button>
+    </form>
+  </div>
+
+  {#- Read once, on the first import into this ledger. Repeating it above
+      every weekly import is how a page teaches you to skip it. -#}
+  <details class="fold"{% if first_import %} open{% endif %}>
+    <summary>Ce que l’import ne fait jamais</summary>
+    <div class="fold-body">
+      <div class="note warn">
+        Il ne supprime aucune facture et ne modifie jamais un total ou le client
+        d’une facture connue. Après votre confirmation, il peut réconcilier le
+        règlement, les dates et un libellé explicitement présents dans le fichier. Il ne
+        touche pas aux conditions de pénalité que vous avez confirmées, ni à
+        l’historique de vos relances : un niveau que vous avez ignoré reste ignoré.
+      </div>
+    </div>
+  </details>
+
+  <details class="fold" id="detail">
+    <summary>Voir le détail</summary>
+    <div class="fold-body">
+
+  {% if plan.unchanged %}
+  <section>
+    <div class="sec-head">
+      <h2>Factures déjà connues, inchangées</h2>
+      <div class="sec-note">Reconnues dans votre grand livre</div>
+    </div>
+    <div class="card pad">
+      <div class="headers-list" style="display:flex; flex-wrap:wrap; gap:8px">
+        {% for row in plan.unchanged %}
+        <span style="font-size:13px; padding:5px 10px; border-radius:6px; background:var(--canvas); border:1px solid var(--line)">{{ row.number }}</span>
+        {% endfor %}
+      </div>
+      <p class="muted" style="font-size:13.5px; margin:14px 0 0">
+        Une facture déjà connue n’est comptée comme <b>mise à jour</b> que si son
+        règlement, sa date, son échéance ou son libellé a réellement changé. Réimporter le même
+        fichier ne produit donc aucune mise à jour : c’est le résultat normal, pas
+        un échec. Un total qui aurait changé n’est pas une mise à jour non plus :
+        il est signalé, et rien n’est modifié.
+      </p>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if plan.updates %}
+  <section>
+    <div class="sec-head"><h2>Factures qui seront mises à jour</h2><div class="sec-note">Uniquement les champs nommés ci-dessous</div></div>
+    <div class="card">
+      {% for row in plan.updates %}
+      <div class="reject-row"><b>{{ row.number }}</b> — {{ row.customer_name }}<div class="where">{{ row.changed_fields|join(', ') }}</div></div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if plan.absent_invoices %}
+  <div class="note warn">
+    <b>{{ plan.absent_invoices }} facture(s) déjà connue(s) n’apparaissent pas dans ce
+    fichier.</b>
+    Elles ne sont pas supprimées : votre export couvre peut-être une période plus
+    courte.{% if plan.absent_examples %}
+    Par exemple {{ plan.absent_examples|join(', ') }}.{% endif %}
+  </div>
+  {% endif %}
+
+  {% if plan.inferred_due_dates %}
+  <div class="note warn">
+    <b>{{ plan.inferred_due_dates }} facture(s) sans échéance dans le fichier.</b>
+    L’échéance est calculée à date de facture + {{ terms_days }} jours. Ce n’est pas
+    une donnée de votre logiciel : vérifiez que ce délai est bien le vôtre.
+  </div>
+  {% endif %}
+
+  {% if plan.shared_emails %}
+  <section>
+    <div class="sec-head">
+      <h2>Une même adresse pour deux clients</h2>
+      <div class="sec-note">Traités comme deux clients distincts</div>
+    </div>
+    <div class="card">
+      {% for row in plan.shared_emails %}
+      <div class="reject-row">
+        <b>{{ row.number }}</b> — « {{ row.name }} » et « {{ row.other_name }} »
+        partagent l’adresse {{ row.email }}.
+        <div class="where">ligne {{ row.line }}</div>
+        <div style="margin-top:6px">
+          Ils sont traités comme deux clients distincts. Si c’est le même,
+          corrigez l’adresse et réimportez.
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if plan.flagged %}
+  <section>
+    <div class="sec-head"><h2>Factures signalées — rien ne sera modifié</h2></div>
+    <div class="card">
+      {% for row in plan.flagged %}
+      <div class="reject-row">
+        <b>{{ row.number }}</b> — {{ row.customer_name }}
+        <div class="where">ligne {{ row.line }}</div>
+        {% if row.existing_total_cents != row.total_ttc_cents %}<div style="margin-top:6px">
+          Total en base : <b>{{ format_eur(row.existing_total_cents) }}</b> ·
+          total dans le fichier : <b>{{ format_eur(row.total_ttc_cents) }}</b>
+        </div>{% endif %}
+        {% for reason in row.reasons %}
+        <div class="prev-warn">{{ reason }}</div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if plan.closed_followups %}
+  <section>
+    <div class="sec-head">
+      <h2>Anciennes relances à fermer</h2>
+      <div class="sec-note">Elles seront fermées ou remplacées automatiquement</div>
+    </div>
+    <div class="card cgv">
+      <div class="cgv-intro">
+        <b>Ces messages ont été préparés avec d’anciennes informations.</b>
+        Ils seront fermés et, si la facture reste due, un nouveau message sera
+        recalculé. Si un
+        brouillon en traîne encore dans votre messagerie, supprimez-le : il
+        contient désormais des informations périmées.
+      </div>
+      {% for closed in plan.closed_followups %}
+      <div class="reject-row">
+        <b>{{ closed.invoice_number }}</b> — {{ closed.customer_name }}
+        <div>{{ closed.reason }}</div>
+        <div class="where">
+          relance de niveau {{ closed.level }}{% if closed.was_status == 'handed_over' %} ·
+          <b>déjà ouverte dans votre messagerie — supprimez le brouillon s’il en reste un</b>{% elif closed.was_status == 'validated' %} · déjà validée, mais pas envoyée{% elif closed.was_status == 'rejected' %} · bloquée par le contrôle{% else %} · en attente de validation{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if plan.rejects %}
+  <section>
+    <div class="sec-head">
+      <h2>Lignes écartées</h2>
+      <div class="sec-note">Elles ne seront pas importées</div>
+    </div>
+    <div class="card">
+      {% for row in plan.rejects %}
+      <div class="reject-row">
+        <div class="where">ligne {{ row.line }}{% if row.number %} · {{ row.number }}{% endif %}{% if row.customer_name %} · {{ row.customer_name }}{% endif %}</div>
+        {% for reason in row.reasons %}
+        <div>{{ reason }}</div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if plan.new_customers %}
+  <section>
+    <div class="sec-head"><h2>Nouveaux clients</h2></div>
+    <div class="card pad">
+      <div class="headers-list" style="display:flex; flex-wrap:wrap; gap:8px">
+        {% for name in plan.new_customers %}
+        <span style="font-size:13px; padding:5px 10px; border-radius:6px; background:var(--canvas); border:1px solid var(--line)">{{ name }}</span>
+        {% endfor %}
+      </div>
+      <p class="muted" style="font-size:13.5px; margin:14px 0 0">
+        Ils arrivent <b>sans conditions de pénalité confirmées</b>, comme tout
+        nouveau client : le système ne devine les conditions de vente de personne.
+        Les clients déjà connus gardent les leurs, telles que vous les avez validées.
+      </p>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if preview %}
+  <section>
+    <div class="sec-head">
+      <h2>Les cinq premières factures, telles qu’elles seront comprises</h2>
+      <div class="sec-note">Uniquement des lignes qui seront écrites</div>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table style="min-width:900px">
+        <thead>
+          <tr>
+            <th>Facture</th><th>Client</th><th>Véhicule</th>
+            <th>Émise</th><th>Échéance</th><th class="num">Total TTC</th><th class="num">Réglé</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in preview %}
+          <tr>
+            <td><b>{{ row.number }}</b></td>
+            <td>{{ row.customer }}<div class="muted" style="font-size:12.5px">{{ row.email }}</div></td>
+            <td class="muted">{{ row.vehicle }}</td>
+            <td class="num">{{ row.issue_date }}</td>
+            <td class="num {% if row.due_inferred %}inferred{% endif %}">
+              {{ row.due_date }}{% if row.due_inferred %} *{% endif %}
+            </td>
+            <td class="num"><b>{{ row.total }}</b></td>
+            <td class="num muted">{{ row.paid }}</td>
+          </tr>
+          {% if row.warnings %}
+          <tr><td colspan="7" style="padding-top:0">
+            {% for warning in row.warnings %}
+            <div class="prev-warn">{{ warning }}</div>
+            {% endfor %}
+          </td></tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:13px; margin-top:10px">
+      * échéance calculée, absente du fichier.
+    </p>
+  </section>
+  {% endif %}
+
+    </div>
+  </details>
+  {% endif %}
+
+  <footer>
+    Les factures importées restent dans les données réelles. Le jeu de
+    démonstration n’est jamais touché.
+  </footer>
+  </main>
+</div>
+</body>
+</html>

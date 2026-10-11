@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Correspondance des colonnes — Relance Garage</title>
+{% include "_style.html" %}
+<style>
+  .map-row td:first-child{width:210px}
+  .map-row td:nth-child(2){width:280px}
+  .sample{font-size:12.5px; color:var(--faint); margin-top:4px; word-break:break-word}
+  .why{font-size:12.5px; color:var(--muted); margin-top:4px}
+  .headers-list{display:flex; flex-wrap:wrap; gap:8px}
+  .headers-list span{font-size:12.5px; padding:4px 9px; border-radius:6px;
+                     background:var(--canvas); border:1px solid var(--line)}
+  .headers-list span.used{background:var(--accent-soft); border-color:#dbe3ed; color:var(--accent)}
+  .save-profile{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .save-profile input{max-width:280px}
+  .quick-profile{margin-top:22px}
+  .quick-profile h2{margin:0 0 8px}
+  .quick-profile p{margin:0 0 18px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  {% include "_app_header.html" %}
+  <main>
+
+  <h1>Que contient chaque colonne&nbsp;?</h1>
+  <p class="lede">
+    Voici vos propres en-têtes. Le système a proposé une correspondance ;
+    corrigez ce qui ne va pas. Les quatre champs marqués
+    <span class="req">obligatoire</span> suffisent à relancer une facture.
+  </p>
+
+  {% if message %}<div class="note ok">{{ message }}</div>{% endif %}
+  {% if error %}<div class="note stop"><b>À corriger.</b><br>{{ error }}</div>{% endif %}
+
+  {% if profile_name and profile_match == 'exact' %}
+  <div class="note ok">
+    <b>Profil « {{ profile_name }} » reconnu.</b> Ce fichier a exactement les
+    colonnes d’un export déjà associé : la correspondance est déjà remplie.
+  </div>
+  {% elif profile_name and profile_match == 'partiel' %}
+  <div class="note warn">
+    <b>Profil « {{ profile_name }} » appliqué partiellement.</b> Les colonnes de
+    ce fichier ne sont pas tout à fait celles du profil — vérifiez les lignes
+    ci-dessous avant de continuer.
+  </div>
+  {% endif %}
+
+  {% if blocking %}
+  <div class="note stop">
+    <b>Convention des séparateurs indéterminée.</b>
+    {% for header in blocking %}
+      La colonne « {{ header }} » contient des montants du type « 1,234 », et rien
+      dans cette colonne ne dit si la virgule sépare les décimales ou les milliers.
+      Ces lignes seront écartées à l’import plutôt que devinées : lire 1,23 €
+      comme 1 234 € enverrait une mise en demeure mille fois trop élevée.
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <details class="card pad disclosure">
+    <summary>Détails du fichier reconnu</summary>
+    <div class="facts">
+      <div><span>Format</span><b>{{ source.kind }}</b></div>
+      {% if source.encoding %}<div><span>Encodage</span><b>{{ source.encoding }}</b></div>{% endif %}
+      {% if source.delimiter %}<div><span>Séparateur</span><b>{{ '« ; »' if source.delimiter == ';' else ('« , »' if source.delimiter == ',' else 'tabulation') }}</b></div>{% endif %}
+      {% if source.sheet %}<div><span>Feuille</span><b>{{ source.sheet }}</b></div>{% endif %}
+      <div><span>Colonnes</span><b>{{ headers|length }}</b></div>
+      <div><span>Lignes lues</span><b>{{ source.row_count }}</b></div>
+    </div>
+    {% if source.notes %}
+    <div style="margin-top:16px">
+      {% for note in source.notes %}
+      <div class="muted" style="font-size:13.5px">→ {{ note }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </details>
+
+  {% set quick_profile = profile_name and profile_match == 'exact' and not needs_term and not blocking %}
+  <form method="post" action="/import/{{ token }}/mapping" id="mapform" onsubmit="busy(this,event)">
+  {% if quick_profile %}
+  <div class="card pad quick-profile">
+    <h2>Correspondance prête</h2>
+    <p>Les {{ headers|length }} colonnes correspondent au profil « {{ profile_name }} ». Passez au récapitulatif pour voir précisément les factures reconnues avant d’enregistrer quoi que ce soit.</p>
+    <button class="primary" type="submit">Voir le récapitulatif</button>
+  </div>
+  <details class="card pad disclosure" style="margin-top:16px">
+    <summary>Vérifier ou modifier la correspondance</summary>
+  {% endif %}
+  <section>
+    <h2>Champs obligatoires</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Information</th><th>Colonne de votre fichier</th><th>Aperçu</th></tr></thead>
+        <tbody>
+          {% for f in fields if f.required %}
+          <tr class="map-row">
+            <td>
+              <b>{{ f.label }}</b> <span class="req">·&nbsp;obligatoire</span>
+              <div class="why">{{ f.hint }}</div>
+            </td>
+            <td>
+              <select name="champ_{{ f.key }}" data-field="{{ f.key }}" onchange="refresh(this)">
+                <option value="">— non renseigné —</option>
+                {% for header in headers %}
+                <option value="{{ header }}" {% if f.selected == header %}selected{% endif %}>{{ header }}</option>
+                {% endfor %}
+              </select>
+              {% if f.reason %}<div class="why">Proposé {{ f.reason }}</div>{% endif %}
+            </td>
+            <td><div class="sample" id="apercu_{{ f.key }}"></div></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Champs facultatifs</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Information</th><th>Colonne de votre fichier</th><th>Aperçu</th></tr></thead>
+        <tbody>
+          {% for f in fields if not f.required %}
+          <tr class="map-row">
+            <td><b>{{ f.label }}</b><div class="why">{{ f.hint }}</div></td>
+            <td>
+              <select name="champ_{{ f.key }}" data-field="{{ f.key }}" onchange="refresh(this)">
+                <option value="">— non renseigné —</option>
+                {% for header in headers %}
+                <option value="{{ header }}" {% if f.selected == header %}selected{% endif %}>{{ header }}</option>
+                {% endfor %}
+              </select>
+              {% if f.reason %}<div class="why">Proposé {{ f.reason }}</div>{% endif %}
+            </td>
+            <td><div class="sample" id="apercu_{{ f.key }}"></div></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+  {% if needs_term %}
+  <section>
+    <h2>Vos factures sont payables sous quel délai&nbsp;?</h2>
+    <div class="card pad">
+      <p class="muted" style="margin:0 0 14px; font-size:14px">
+        Ce fichier ne contient pas de colonne d’échéance. Le délai que vous
+        indiquez ici servira à la calculer, pour ce fichier et pour les
+        prochains exports du même logiciel. Question posée une fois.
+      </p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        {% for days, label in term_choices %}
+        <label style="display:flex; align-items:center; gap:7px; padding:9px 14px;
+                      border:1px solid var(--line); border-radius:8px;
+                      background:var(--surface); cursor:pointer">
+          <input type="radio" name="delai_paiement" value="{{ days }}"
+                 {% if days == term_days %}checked{% endif %}>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+      <p class="muted" style="margin:14px 0 0; font-size:13px">
+        Dans le doute, gardez le délai le plus long : supposer trop court
+        revient à relancer des clients qui ne sont pas en retard.
+      </p>
+    </div>
+  </section>
+  {% endif %}
+
+  <section>
+    <h2>Colonnes de votre fichier</h2>
+    <div class="card pad">
+      <div class="headers-list" id="headerchips">
+        {% for header in headers %}
+        <span data-header="{{ header }}">{{ header }}</span>
+        {% endfor %}
+      </div>
+      <p class="muted" style="font-size:13px; margin:14px 0 0">
+        En bleu, les colonnes déjà associées. Les autres seront simplement ignorées.
+      </p>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button class="primary" type="submit">Enregistrer la correspondance</button>
+    <button type="submit" formaction="/import/{{ token }}/profil" formnovalidate
+            onclick="return askName()">Enregistrer comme profil</button>
+    <input type="text" name="nom" id="nomprofil" placeholder="Nom du profil"
+           value="{{ profile_name or '' }}" style="max-width:260px">
+  </div>
+  <p class="muted" style="font-size:13.5px; margin-top:10px">
+    Un profil retient ces choix pour le prochain export du même logiciel.
+    Le prochain export du même logiciel sera ainsi reconnu automatiquement.
+  </p>
+  {% if quick_profile %}</details>{% endif %}
+  </form>
+
+  {% if profiles and not quick_profile %}
+  <section>
+    <h2>Appliquer un profil existant</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Profil</th><th>Colonnes associées</th><th></th></tr></thead>
+        <tbody>
+          {% for p in profiles %}
+          <tr>
+            <td><b>{{ p.name }}</b> <span class="muted">· {{ p.kind }}</span></td>
+            <td class="muted">{{ p.mapping|length }} champs · utilisé {{ p.use_count }} fois</td>
+            <td style="text-align:right">
+              <form method="post" action="/import/{{ token }}/profil/appliquer" style="display:inline">
+                <input type="hidden" name="nom" value="{{ p.name }}">
+                <button type="submit">Appliquer</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="note warn" style="margin-top:36px">
+    <b>Rien n’est encore enregistré.</b> Le récapitulatif avant import — lignes
+    lisibles, lignes écartées et pourquoi, aperçu des cinq premières factures —
+    arrive à l’étape suivante, avec un bouton Confirmer. Les données réelles
+    restent toujours séparées du jeu de démonstration.
+  </div>
+
+  <footer>
+    Fichier gardé en mémoire uniquement, le temps de cette correspondance.
+    Aucun mot de passe de messagerie n’est demandé, à aucun moment.
+  </footer>
+  </main>
+</div>
+
+<script>
+  const SAMPLES = {{ facts|tojson }};
+
+  function refresh(select){
+    const box = document.getElementById('apercu_' + select.dataset.field);
+    const fact = SAMPLES[select.value];
+    if (!select.value || !fact){ box.textContent = ''; }
+    else {
+      const shown = fact.samples.length ? fact.samples.join('  ·  ') : '(colonne vide)';
+      box.textContent = shown;
+      if (fact.filled < fact.total) {
+        box.textContent += `   — ${fact.total - fact.filled} ligne(s) sans valeur`;
+      }
+    }
+    paintChips();
+  }
+
+  function paintChips(){
+    const used = new Set(
+      [...document.querySelectorAll('select[data-field]')]
+        .map(s => s.value).filter(Boolean)
+    );
+    document.querySelectorAll('#headerchips span').forEach(chip => {
+      chip.classList.toggle('used', used.has(chip.dataset.header));
+    });
+  }
+
+  function askName(){
+    const input = document.getElementById('nomprofil');
+    if (input.value.trim()) return true;
+    const name = prompt('Nom du profil (le logiciel dont vient l’export) :');
+    if (!name) return false;
+    input.value = name.trim();
+    return true;
+  }
+
+  function busy(form, submitEvent){
+    if (submitEvent.submitter && submitEvent.submitter.formAction.includes('/profil')) return;
+    const button = form.querySelector('button[type=submit]');
+    if (button){ button.disabled = true; button.textContent = 'Vérification…'; }
+    form.setAttribute('aria-busy','true');
+  }
+
+  document.querySelectorAll('select[data-field]').forEach(refresh);
+</script>
+</body>
+</html>

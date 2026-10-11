@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tableau de bord — Relance Garage</title>
+  {% include "_style.html" %}
+  <style>
+    .hero{padding:26px; display:flex; justify-content:space-between; gap:24px; align-items:center}
+    .hero .value{font-size:38px; font-weight:750; letter-spacing:-.035em; font-variant-numeric:tabular-nums}
+    .hero-side{display:grid; grid-template-columns:repeat(2,minmax(130px,1fr)); gap:12px; min-width:340px}
+    .next-step{display:flex; align-items:center; justify-content:space-between; gap:22px; padding:22px 24px}
+    .next-step h2{margin-bottom:5px}.next-step p{margin:0; color:var(--muted); font-size:14px}
+    @media(max-width:760px){.hero,.next-step{display:block}.hero-side{min-width:0; margin-top:20px; grid-template-columns:1fr 1fr}.next-step .actions{margin-top:16px}}
+  </style>
+</head>
+<body><div class="wrap">
+  {% include "_app_header.html" %}
+  <main>
+    <div class="page-head"><div><h1>Tableau de bord</h1><p class="lede">L’essentiel à encaisser et la prochaine action utile.</p></div></div>
+
+    {% if not shell.context.is_demo and shell.context.preview_only %}
+    <div class="note warn"><b>Données réelles visibles, envoi encore désactivé.</b> Vous pouvez importer, vérifier et préparer les relances sans contacter de client pendant la pré-production.</div>
+    {% endif %}
+
+    {% if view.invoice_count %}
+    <div class="card hero">
+      <div><span class="muted small">Reste à encaisser</span><div class="value">{{ view.outstanding }}</div><div class="muted small">sur {{ view.invoice_count }} factures · {{ view.settled_share }} % déjà réglées</div></div>
+      <div class="hero-side">
+        <div class="metric"><span class="label">En retard</span><div class="value" style="font-size:21px">{{ view.overdue_amount }}</div><div class="hint">{{ view.overdue_count }} facture{{ 's' if view.overdue_count > 1 }}</div></div>
+        <div class="metric"><span class="label">À venir</span><div class="value" style="font-size:21px">{{ view.not_due_amount }}</div><div class="hint">{{ view.not_due_count }} facture{{ 's' if view.not_due_count > 1 }}</div></div>
+      </div>
+    </div>
+
+    <section>
+      <div class="card next-step">
+        <div>
+          {% if view.queue %}<h2>{{ view.queue|length }} relance{{ 's' if view.queue|length > 1 }} à vérifier</h2><p>Lisez chaque message avant de le valider.</p>
+          {% elif view.followups_to_prepare %}<h2>{{ view.followups_to_prepare }} relance{{ 's' if view.followups_to_prepare > 1 }} à préparer</h2><p>Les factures sont reconnues ; les messages restent à générer.</p>
+          {% elif view.validated %}<h2>{{ view.validated|length }} relance{{ 's' if view.validated|length > 1 }} validée{{ 's' if view.validated|length > 1 }}</h2><p>Retrouvez vos messages validés et choisissez la prochaine étape.</p>
+          {% elif view.handed_over %}<h2>Des envois restent à confirmer</h2><p>Vérifiez ce que vous avez réellement envoyé depuis votre messagerie.</p>
+          {% else %}<h2>Tout est à jour</h2><p>Aucune relance ne demande votre attention aujourd’hui.</p>{% endif %}
+        </div>
+        <div class="actions">
+          {% if view.followups_to_prepare and not view.queue %}<form method="post" action="/relances/preparer"><input type="hidden" name="next" value="/relances"><input type="hidden" name="contexte" value="{{ shell.context.key }}"><button class="primary" type="submit">Préparer les relances</button></form>
+          {% else %}<a class="btn primary" href="/relances">Voir les relances</a>{% endif %}
+          <a class="btn" href="/factures">Voir les factures</a>
+        </div>
+      </div>
+    </section>
+
+    <section><details class="disclosure"><summary>Voir le suivi des 30 derniers jours</summary><div class="grid three">
+      <div class="metric"><span class="label">Retard le plus ancien</span><div class="value">{{ view.oldest_days }} jours</div></div>
+      <div class="metric"><span class="label">Relances envoyées</span><div class="value">{{ view.activity.sent }}</div><div class="hint">Envois confirmés uniquement</div></div>
+      <div class="metric"><span class="label">Encaissé après relance</span><div class="value">{{ view.activity.recovered }}</div><div class="hint">{{ view.activity.recovered_count }}</div></div>
+    </div></details></section>
+    {% else %}
+    <div class="card empty"><h2>Aucune facture pour le moment</h2><p>{% if shell.context.is_demo %}Le jeu de démonstration doit être réinitialisé depuis Paramètres.{% else %}Importez un export de votre logiciel pour commencer. Vous verrez ensuite chaque facture ici.{% endif %}</p><div class="actions" style="justify-content:center">{% if shell.context.is_demo %}<a class="btn" href="/parametres/envoi">Ouvrir les paramètres</a>{% else %}<a class="btn primary" href="/import">Importer des factures</a>{% endif %}</div></div>
+    {% endif %}
+  </main>
+  <footer>{{ shell.context.label }} · {{ shell.today }}. Tous les montants sont calculés à partir des factures enregistrées.</footer>
+</div></body></html>

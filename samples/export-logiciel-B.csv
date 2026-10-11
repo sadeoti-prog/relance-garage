@@ -1,0 +1,6 @@
+﻿invoice_no,customer,customer_email,issue_date,net_amount,vat_amount,gross_amount,paid_amount,vehicle
+2026-0912,Garage Central Pièces Auto,contact@central-pieces.example.com,2026-06-30,1070.00,214.00,1284.00,0.00,Fiat Ducato
+2026-0913,Élodie Marchetti,e.marchetti@example.com,2026-07-08,158.25,31.65,189.90,0.00,Opel Corsa
+2026-0914,Transports Bugeaud,compta@bugeaud-transports.example.com,2026-07-15,1950.00,390.00,2340.00,780.00,Renault Master
+2026-0915,Sébastien Nkemé,s.nkeme@example.com,2026-07-22,80.42,16.08,96.50,96.50,Ford Fiesta
+2026-0916,Le Comptoir Fleuri,gerance@comptoir-fleuri.example.com,2026-08-01,364.33,72.87,437.20,0.00,Peugeot Partner

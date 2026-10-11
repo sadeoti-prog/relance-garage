@@ -1,0 +1,8 @@
+N° facture;Client;Email;Date facture;Échéance;Véhicule;Immatriculation;Prestation;Total TTC;Réglé
+FA-2026-0413;M. Hervé Lecoq;h.lecoq@example.com;18/06/2026;03/07/2026;Peugeot 308;DT-687-RL;Plaquettes avant;189,90 €;0
+FA-2026-0414;Mme Anne Vasseur;;24/06/2026;09/07/2026;Citroën C3;EH-338-VD;Contrôle technique;98,00 €;98,00 €
+FA-2026-0415;SARL Menuiserie Thibault;facturation@thibault-bois.example.com;02/07/2026;01/08/2026;Citroën Jumper;FN-703-QB;Embrayage;2 340,00 €;500,00 €
+FA-2026-0416;M. Hervé Lecoq;h.lecoq@example.com;09/07/2026;24/07/2026;Peugeot 308;DT-687-RL;Vidange;96,50 €;96,50 €
+FA-2026-0417;Ambulances Saint-Roch;compta@ambulances-st-roch.example.com;15/07/2026;14/08/2026;Volkswagen Transporter;FJ-085-LR;Distribution;1 890,00;1 890,00
+FA-2026-0418;M. Damien Ferry;d.ferry@example.com;21/07/2026;;Dacia Duster;FB-604-XJ;Amortisseurs arrière;437,20;0
+FA-2026-0422;BOULANGERIE CHEZ LEA S.A.R.L.;compta@chez-lea.example.com;10/08/2026;09/09/2026;Renault Kangoo;FT-338-ZP;Freins avant;312,50 €;0

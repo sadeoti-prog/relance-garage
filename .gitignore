@@ -1,0 +1,12 @@
+data/*.db
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+.venv/
+samples/*.db
+data/*.json
+data/envoi-smtp.json
+google-client.json
+data/google-token.json

@@ -1,0 +1,21 @@
+<header class="app-header">
+  <div class="app-top">
+    <a class="brand-link" href="/">{{ shell.garage.name }}<span>{{ shell.garage.address }} · {{ shell.garage.postal_code }} {{ shell.garage.city }}</span></a>
+    <div class="context-box">
+      <div class="context-copy" aria-live="polite"><b>{{ shell.context.label }}</b><span>{{ shell.context.description }}</span></div>
+      <form class="mode-switch" method="post" action="/mode" aria-label="Choisir les données affichées">
+        <input type="hidden" name="next" value="{{ shell.return_path }}">
+        <button type="submit" name="mode" value="demo" aria-pressed="{{ 'true' if shell.context.is_demo else 'false' }}" {% if shell.context.is_demo %}disabled{% endif %}>Démonstration</button>
+        <button type="submit" name="mode" value="real" aria-pressed="{{ 'false' if shell.context.is_demo else 'true' }}" {% if not shell.context.is_demo %}disabled{% endif %}>Données réelles</button>
+      </form>
+    </div>
+  </div>
+  <nav class="main-nav" aria-label="Navigation principale">
+    <a href="/" {% if shell.active == 'dashboard' %}aria-current="page"{% endif %}>Tableau de bord</a>
+    <a href="/factures" {% if shell.active == 'invoices' %}aria-current="page"{% endif %}>Factures</a>
+    <a href="/clients" {% if shell.active == 'clients' %}aria-current="page"{% endif %}>Clients</a>
+    <a href="/import" {% if shell.active == 'import' %}aria-current="page"{% endif %}>Import</a>
+    <a href="/relances" {% if shell.active == 'reminders' %}aria-current="page"{% endif %}>Relances</a>
+    <a href="/parametres/envoi" {% if shell.active == 'settings' %}aria-current="page"{% endif %}>Paramètres</a>
+  </nav>
+</header>

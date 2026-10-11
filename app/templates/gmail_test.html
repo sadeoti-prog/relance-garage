@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tester un brouillon Gmail — Relance Garage</title>{% include "_style.html" %}
+<style>.test-message{max-width:760px}.test-body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.65;border-top:1px solid var(--line-soft);padding-top:18px}.test-meta{overflow-wrap:anywhere}.test-meta p{margin:6px 0}</style></head>
+<body><div class="wrap">{% include "_app_header.html" %}<main>
+<div class="page-head"><div><h1>Tester un brouillon Gmail</h1><p class="lede">Un exemple fictif, adressé uniquement à vous. Aucun envoi depuis l’application.</p></div></div>
+{% if test %}
+{% if test.invoice_number %}<div class="note neutral"><b>Votre relance pour {{ test.invoice_number }}.</b> La copie ci-dessous reprend le message validé en démonstration. Le destinataire est remplacé par votre propre Gmail, même si le client a une autre adresse.</div>{% endif %}
+<div class="card pad test-message">
+  <div class="test-meta"><p><b>Compte Gmail :</b> {{ test.account }}</p><p><b>Destinataire :</b> {{ test.recipient }} (vous-même)</p><p><b>Objet :</b> {{ test.subject }}</p></div>
+  {% if test.handover.fits %}<div class="test-body">{{ test.body }}</div>{% endif %}
+  {% if test.handover.fits %}<div class="actions"><a id="gmail-test-link" class="btn primary" href="{{ test.handover.url }}" target="_blank" rel="noopener noreferrer">Ouvrir ce brouillon dans Gmail</a></div>
+  {% else %}<div class="note neutral" style="margin-top:20px">Ce message est long. Pour ne rien couper, copiez l’objet et le message ci-dessous, puis collez-les dans Gmail.</div><label for="copy-subject">Objet à copier</label><input id="copy-subject" type="text" readonly value="{{ test.subject }}"><button type="button" style="margin:8px 0 18px" onclick="copyTest('copy-subject')">Copier l’objet</button><label for="copy-body">Message à copier</label><textarea id="copy-body" readonly>{{ test.body }}</textarea><button type="button" style="margin-top:8px" onclick="copyTest('copy-body')">Copier le message</button><p id="copy-status" class="help" role="status"></p><div class="actions"><a id="gmail-test-link" class="btn primary" href="{{ test.handover.empty_url }}" target="_blank" rel="noopener noreferrer">Ouvrir Gmail et coller le message</a></div>{% endif %}
+  <p class="help">Gmail s’ouvre dans un nouvel onglet. Vérifiez le compte et le message, puis retrouvez-le dans le dossier « Brouillons » de Gmail avant de fermer l’onglet. Ne cliquez pas sur « Envoyer ».</p>
+  <p id="draft-status" class="small" role="status" hidden>Gmail a été demandé dans un nouvel onglet. Vérifiez que le brouillon y est enregistré avant de terminer le test. Si rien ne s’ouvre, autorisez cette fenêtre puis réessayez.</p>
+</div>
+<section class="test-message"><details class="disclosure"><summary>Comment fonctionne ce test ?</summary><p class="small muted">La connexion au site autorise l’envoi, pas l’enregistrement automatique de brouillons. Ce bouton préremplit Gmail dans votre navigateur ; Gmail conserve ensuite le brouillon. Vous devrez peut-être vous y connecter. L’application ne lit pas votre boîte mail et ne peut pas confirmer cet enregistrement à votre place.</p><p class="small muted">Aucune facture, aucun statut de relance et aucune donnée client ne sont modifiés par ce test.</p></details></section>
+{% else %}
+<div class="card empty"><h2>Connectez d’abord votre compte Gmail</h2><p>Passez aux données réelles, puis connectez votre messagerie depuis Paramètres. Revenez ici pour tester un message fictif adressé à vous-même.</p></div>
+{% endif %}
+<div class="actions"><a class="btn" href="/relances">Retour aux relances</a><a class="btn ghost" href="/parametres/envoi">Paramètres</a></div>
+</main><footer>Test de brouillon uniquement · aucune facture réelle utilisée · aucun envoi automatique.</footer></div>
+<script>const draftLink=document.getElementById('gmail-test-link');if(draftLink)draftLink.addEventListener('click',()=>{document.getElementById('draft-status').hidden=false;draftLink.textContent='Rouvrir Gmail (peut créer un second brouillon)';});async function copyTest(id){const field=document.getElementById(id);try{await navigator.clipboard.writeText(field.value);document.getElementById('copy-status').textContent='Copié. Collez ce texte dans Gmail.'}catch(e){field.focus();field.select();document.getElementById('copy-status').textContent='Le texte est sélectionné. Utilisez Ctrl+C puis collez-le dans Gmail.'}}</script>
+</body></html>

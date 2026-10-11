@@ -1,0 +1,10 @@
+{% if error %}<div class="note stop" role="alert" tabindex="-1" id="form-error"><b>Vérifiez votre saisie.</b> {{ error }}{% if error.status == 409 %}<p><a href="{{ request.url.path }}">Recharger le formulaire</a> · <a href="/clients">Clients</a> · <a href="/factures">Factures</a></p>{% endif %}</div>{% endif %}
+<input type="hidden" name="contexte" value="{{ shell.context.key }}">
+{% if form.get('version') %}<input type="hidden" name="version" value="{{ form.version }}">{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+ const error=document.getElementById('form-error');if(error)error.focus();
+ document.querySelectorAll('form.owner-form').forEach(form=>form.addEventListener('submit',()=>{const b=form.querySelector('button[type=submit]');if(b){b.disabled=true;b.textContent='Enregistrement…';}}));
+});
+window.addEventListener('pageshow',e=>{if(e.persisted)location.reload()});
+</script>

@@ -1,0 +1,15 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Factures — Relance Garage</title>{% include "_style.html" %}
+<style>.filters{display:flex;gap:7px;flex-wrap:wrap}.filters a{font-size:13px;text-decoration:none;padding:7px 11px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:#fff}.filters a.active{background:var(--accent-soft);color:var(--accent);border-color:#cfdeeb;font-weight:650}.invoice-link{font-weight:700;text-decoration:none}.customer{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}.mobile-next{display:none;color:var(--accent);font-size:12px;font-weight:650;margin-top:6px}@media(max-width:700px){th:nth-child(3),td:nth-child(3),th:nth-child(5),td:nth-child(5){display:none}.mobile-next{display:block}th,td{padding-left:10px;padding-right:10px}table{table-layout:fixed}th:nth-child(1){width:34%}th:nth-child(2){width:36%}th:nth-child(4){width:30%}}</style></head>
+<body><div class="wrap">{% include "_app_header.html" %}<main>
+  <div class="page-head"><div><h1>Factures</h1><p class="lede">Suivez les montants à encaisser et renseignez les paiements reçus.</p></div><div class="actions"><a class="btn primary" href="/factures/nouvelle">Ajouter une facture</a>{% if not shell.context.is_demo %}<a class="btn" href="/import">Importer</a>{% endif %}</div></div>
+  <div class="filters" aria-label="Filtrer les factures">
+    <a href="/factures?etat=toutes" class="{{ 'active' if summary.selected == 'toutes' }}">Toutes · {{ summary.all }}</a>
+    <a href="/factures?etat=en_retard" class="{{ 'active' if summary.selected == 'en_retard' }}">En retard · {{ summary.overdue }}</a>
+    <a href="/factures?etat=a_venir" class="{{ 'active' if summary.selected == 'a_venir' }}">À venir · {{ summary.upcoming }}</a>
+    <a href="/factures?etat=reglees" class="{{ 'active' if summary.selected == 'reglees' }}">Réglées · {{ summary.paid }}</a>
+  </div>
+  {% if invoices %}<section><div class="card table-wrap"><table><thead><tr><th>Facture et client</th><th>Situation</th><th>Échéance</th><th class="num">Reste dû</th><th>Suite</th></tr></thead><tbody>
+  {% for row in invoices %}<tr><td><a class="invoice-link" href="/factures/{{ row.id }}">{{ row.number }}</a><span class="customer">{{ row.customer }}</span><span class="mobile-next">{{ row.next_action }}</span></td><td><span class="pill {{ row.tone }}">{{ row.status_label }}</span>{% if row.status != 'paid' %}<div class="small muted" style="margin-top:4px">{{ row.timing }}</div>{% endif %}</td><td>{{ row.due_date }}</td><td class="num"><b>{{ row.remaining }}</b><div class="small muted">sur {{ row.total }}</div></td><td><span class="small">{{ row.next_action }}</span></td></tr>{% endfor %}
+  </tbody></table></div></section>
+  {% else %}<div class="card empty" style="margin-top:24px"><h2>Aucune facture dans ce filtre</h2><p>Choisissez « Toutes » pour retrouver l’ensemble des factures.</p></div>{% endif %}
+</main><footer>{{ shell.context.label }} · les données affichées proviennent uniquement du contexte sélectionné.</footer></div></body></html>

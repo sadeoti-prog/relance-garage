@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Clients — Relance Garage</title>{% include "_style.html" %}
+<style>.client-row{display:grid;grid-template-columns:minmax(0,1fr) 130px 150px;align-items:start;gap:20px;padding:18px 22px;border-bottom:1px solid var(--line-soft)}.client-row:last-child{border-bottom:0}.client-row h2{margin-bottom:4px}.client-row details{margin-top:6px;border:0}.client-row summary{padding:6px 0!important}.client-contact{overflow-wrap:anywhere}.client-balance{text-align:right}.client-balance b{display:block}.client-search{max-width:480px;margin-bottom:20px}.client-row[hidden]{display:none}@media(max-width:600px){.client-row{grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:16px}.client-count{grid-column:1;grid-row:2}.client-balance{grid-column:2;grid-row:1}.client-row h2{font-size:16px}}</style></head>
+<body><div class="wrap">{% include "_app_header.html" %}<main>
+<div class="page-head"><div><h1>Clients</h1><p class="lede">Retrouvez un client, ses coordonnées et le montant restant à encaisser.</p></div><div class="actions"><a class="btn primary" href="/clients/nouveau">Ajouter un client</a></div></div>
+{% if clients %}
+<div class="client-search"><label for="client-search">Rechercher un client</label><input type="text" id="client-search" placeholder="Nom ou adresse e-mail" autocomplete="off"><p id="client-count" class="help" role="status">{{ clients|length }} clients</p></div>
+<div class="card">{% for client in clients %}
+<article class="client-row" id="client-{{ client.id }}" data-search="{{ client.name }} {{ client.email }}">
+  <div><h2><a href="/clients/{{ client.id }}">{{ client.name }}</a></h2><span class="small muted">{{ client.kind }}</span>
+    <details class="disclosure"><summary>Coordonnées et conditions</summary><div class="client-contact small"><p><b>E-mail :</b> {{ client.email }}<br><b>Téléphone :</b> {{ client.phone }}<br><b>Adresse :</b> {{ client.address }}</p>{% if not client.terms_confirmed %}<p class="muted">Aucune pénalité contractuelle appliquée : les conditions restent à confirmer.</p>{% endif %}{% if not client.kind_confirmed %}<p class="muted">Le type de client a été détecté à l’import et reste à confirmer.</p>{% endif %}</div></details>
+  </div>
+  <div class="client-count small muted">{{ client.invoice_count }} facture{{ 's' if client.invoice_count > 1 }}<br>{{ client.open_count }} à régler</div>
+  <div class="client-balance"><b>{{ client.outstanding }}</b><span class="small muted">à encaisser</span></div>
+</article>{% endfor %}</div>
+<div id="client-empty" class="card empty" hidden><h2>Aucun client trouvé</h2><p>Essayez une partie du nom ou effacez la recherche.</p></div>
+{% else %}<div class="card empty"><h2>Aucun client pour le moment</h2><p>Ajoutez votre premier client avec le bouton ci-dessus. Ils peuvent aussi être créés lors d’un import de factures.</p></div>{% endif %}
+</main><footer>{{ shell.context.label }} · les coordonnées détaillées restent accessibles pour chaque client.</footer></div>
+<script>const search=document.getElementById('client-search');const normalize=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr').trim();if(search)search.addEventListener('input',()=>{const query=normalize(search.value);let count=0;document.querySelectorAll('.client-row').forEach(row=>{row.hidden=!normalize(row.dataset.search).includes(query);if(!row.hidden)count++;});document.getElementById('client-count').textContent=count+' client'+(count>1?'s':'')+' trouvé'+(count>1?'s':'');document.getElementById('client-empty').hidden=count!==0;});</script>
+</body></html>
